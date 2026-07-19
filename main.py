@@ -1,39 +1,42 @@
 import os
-import requests
 from googleapiclient.discovery import build
+import requests
 
 # Secrets
 API_KEY = os.environ['API_KEY']
 TG_TOKEN = os.environ['TG_TOKEN']
 TG_ID = os.environ['TG_ID']
+CHANNEL_ID = os.environ['CHANNEL_ID']
 
-def send_telegram(message):
-    url = f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage"
-    # Uzun mesajları parçalamak için parse_mode=Markdown ekleyebiliriz
-    requests.post(url, data={"chat_id": TG_ID, "text": message, "parse_mode": "Markdown"})
-
-def get_trends():
+def get_channel_report():
     youtube = build("youtube", "v3", developerKey=API_KEY)
-    # 20 tane trend videoyu çek
-    response = youtube.videos().list(
-        part="snippet", 
-        chart="mostPopular", 
-        regionCode="TR", 
-        maxResults=20
+    
+    # Kanal istatistikleri
+    res = youtube.channels().list(id=CHANNEL_ID, part='statistics,snippet').execute()
+    stats = res['items'][0]['statistics']
+    
+    # En son yorumlar
+    comments = youtube.commentThreads().list(
+        allThreadsRelatedToChannelId=CHANNEL_ID, part='snippet', maxResults=3, order='time'
     ).execute()
     
-    msg = "🔥 *Şu Anki Trend Videolar (İlk 20):*\n\n"
-    for i, item in enumerate(response['items'], 1):
-        title = item['snippet']['title']
-        video_id = item['id']
-        link = f"https://www.youtube.com/watch?v={video_id}"
-        # Markdown formatında liste oluşturuyoruz
-        msg += f"{i}. [{title}]({link})\n"
+    msg = f"📊 *Günlük Kanal Raporu*\n\n"
+    msg += f"👥 Toplam Abone: {stats['subscriberCount']}\n"
+    msg += f"📈 Toplam İzlenme: {stats['viewCount']}\n"
+    msg += f"🎬 Toplam Video: {stats['videoCount']}\n\n"
+    msg += f"💬 *Son Yorumlar:*\n"
     
+    for item in comments['items']:
+        text = item['snippet']['topLevelComment']['snippet']['textDisplay'][:50]
+        author = item['snippet']['topLevelComment']['snippet']['authorDisplayName']
+        msg += f"- {author}: {text}...\n"
+        
     return msg
 
 if __name__ == "__main__":
     try:
-        send_telegram(get_trends())
+        report = get_channel_report()
+        requests.post(f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage", 
+                      data={"chat_id": TG_ID, "text": report, "parse_mode": "Markdown"})
     except Exception as e:
-        send_telegram(f"Hata oluştu: {str(e)}")
+        print(f"Hata: {e}")
