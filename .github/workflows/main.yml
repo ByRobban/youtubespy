@@ -2,8 +2,8 @@ name: YouTube Trends Spy
 
 on:
   schedule:
-    - cron: '*/5 * * * *' # Her 5 dakikada bir çalıştırır
-  workflow_dispatch:    # Manuel çalıştırma butonu
+    - cron: '0 0 * * *' # Her gün gece 00:00 (UTC)
+  workflow_dispatch:
 
 jobs:
   run-script:
@@ -11,18 +11,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+        
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
-      
+          python-version: '3.12'
+        
       - name: Install dependencies
         run: pip install requests pandas google-api-python-client
-      
+        
       - name: Run Spy Script
         env:
           API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           TG_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TG_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
         run: python main.py
