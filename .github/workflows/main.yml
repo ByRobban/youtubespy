@@ -2,7 +2,7 @@ name: YouTube Trends Spy
 
 on:
   schedule:
-    - cron: '0 9 * * 1' # Her Pazartesi saat 09:00
+    - cron: '*/5 * * * *' # Her 5 dakikada bir çalıştırır
   workflow_dispatch:    # Manuel çalıştırma butonu
 
 jobs:
